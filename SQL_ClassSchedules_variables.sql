@@ -95,7 +95,7 @@ go
 /*
 Finally, optional filtering of the above query to a subset of students:
 The expected behavior is that we can input a list of students and see results just for that list, or leave blank and see results for all students.
-Compare the results to the refernece table above
+Compare the results to the reference table above
 */
 
 declare @building_material varchar(50)='stone'
