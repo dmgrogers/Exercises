@@ -1,0 +1,3 @@
+'eucalyptus',40
+'cherry',65
+'larch',70

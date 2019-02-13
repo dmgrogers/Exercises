@@ -1,0 +1,6 @@
+Greetings and salutations! This is an example txt file for importing into python.
+And this is a new line...
+
+And this is a new line after a line break.
+
+Finally, here's a line with an escaped character.
