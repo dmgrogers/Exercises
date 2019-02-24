@@ -1,16 +1,16 @@
+
 from datetime import datetime
-timestamp = ''.join([ i for i in list(str((datetime.now()))) if i not in '- .:'])
+timestamp = ''.join([i for i in list(str((datetime.now()))) if i not in '- .:'])
 timestamp
 
-file_name_in = '/Users/davidrogers/documents/github/references-and-illustrations/Py_file_import_example.txt'
+file_name_in = '/Users/davidrogers/documents/github/exercises/Py_importingAndWritingFiles/Py_file_import_example.txt'
 with open(file_name_in) as f:
 	fl=f.readlines()
 
 fl # Note the line break characters, and the use of double-single quote alternation for "here's"
 
-def fileNameOut(	path='/Users/davidrogers/documents/github/references-and-illustrations/',
-					base='example',
-					timestamp=True):
+def fileNameOut(	path='/Users/davidrogers/documents/github/Exercises/Py_importingAndWritingFiles/',
+					base='example'):
 	timestamp = ''.join([ i for i in list(str((datetime.now()))) if i not in '- .:'])
 	file_name = path+base+'_'+timestamp+'.txt'
 	return file_name

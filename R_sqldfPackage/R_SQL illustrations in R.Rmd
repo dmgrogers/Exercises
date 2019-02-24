@@ -1,0 +1,126 @@
+---
+title: "Illustrating SQL using R"
+output: html_document
+---
+
+```{r, include=FALSE}
+library(sqldf)
+library(alr4)
+library(PASWR)
+library(car)
+names(titanic3)[names(titanic3)=='home.dest'] <- 'homedest'
+```
+
+The "sqldf" package can be used to run SQL queries in R.
+
+Here is an illustration of some SQL commands using a morbid but well-known data-set recording the survival (or not) of passengers aboard the Titanic.
+
+Check the first few entries of the data set to get an idea of its structure and content:
+
+```{r,tidy=TRUE}  
+sqldf("select * from titanic3 limit 5")
+```
+
+How many passengers are there?
+```{r,tidy=TRUE}
+sqldf("select count(*) from titanic3")
+```
+
+How many passengers are there with ages listed?
+```{r,tidy=TRUE}
+sqldf('select count(age) from titanic3')
+```
+
+How many passengers 10 or younger survived (of those with ages listed)?
+```{r,tidy=TRUE}
+sqldf('select count(*) from titanic3 
+      where age<=10 and survived=1')
+```
+
+Who were they?
+```{r,tidy=TRUE}
+sqldf("select name,age from titanic3 
+      where age <=10 and survived =1
+      limit 10")
+```
+
+How many distinct cabins contained passengers? 
+```{r,tidy=TRUE}
+sqldf('select count(distinct cabin) from titanic3')
+```
+
+Who were the oldest survivors of the wreck?
+```{r,tidy=TRUE}
+sqldf('select name,age from titanic3 
+      where (survived=1 and age is not null) 
+      order by age desc 
+      limit 10')
+```
+
+How many passengers traveling to Indianapolis were between the ages of 18 and 21?
+
+```{r,tidy=TRUE}
+sqldf('select age,embarked from titanic3 
+      where age between 18 and 21 
+      and homedest="Indianapolis, IN"')
+```
+
+What were the embarkation points for passengers aboard the Titanic?
+```{r,tidy=TRUE}
+sqldf('select distinct embarked from titanic3')
+```
+
+Which enigmatic passengers have " " listed as their embarkation point?
+```{r,tidy=TRUE}
+sqldf('select name,age,embarked,homedest from titanic3 where embarked 
+      not in ("Queenstown","Cherbourg","Southampton")')
+```
+
+How many passengers embarked from the British Isles?
+```{r,tidy=TRUE}
+sqldf('select count(*) from titanic3
+      where embarked in("Queenstown","Southampton")
+      limit 10')
+```
+
+What was the survival rate for those who paid the lowest fares (less than one fifth of the average) versus of those who paid the highest fares (more than five times the average)?
+
+First, how many passengers paid the lowest fares?
+```{r,tidy=TRUE}
+sqldf("select count(fare) from titanic3 
+      where fare<.2*(select avg(fare) from titanic3)")
+```
+How man of those paying the **lowest** fare survived?
+```{r,tidy=TRUE}
+sqldf("select count(*)from titanic3 
+      where fare<.2*(select avg(fare) from titanic3)
+      and survived=1")
+```
+
+How many passengers paid the highest fares?
+```{r,tidy=TRUE}
+sqldf("select count(*) from titanic3 
+      where fare>5*(select avg(fare) from titanic3)")
+```
+And how many of those paying the **highest** fares survived?
+```{r,tidy=TRUE}
+sqldf("select count(*) from titanic3 
+      where fare>5*(select avg(fare) from titanic3)
+      and survived=1")
+```
+
+
+Which cabin names started with 'A'?
+```{r,tidy=TRUE}
+sqldf('select distinct cabin from titanic3
+      where cabin like "A%"')
+```
+
+Many passengers are listed as assigned to more than one cabin.  Which cabin names were combined in this way? To answer this, note that single cabin names are always four characters at most (a letter plus up to three numerals). So, which cabin assignments have five or more characters?  This should give us all the cabins that are listed together.
+
+```{r,tidy=TRUE}
+sqldf('select distinct cabin from titanic3
+      where cabin like "_____%"')
+```
+
+

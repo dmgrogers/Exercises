@@ -4,7 +4,9 @@
 # and partly on course notes.
 ############################################
 
-setwd('/users/david/documents/github/R')
+# It's convenient to set your working directory to the directory containing any files you'll import later.
+setwd('/users/davidrogers/documents/github/exercises/R_Basics')
+getwd()
 
 ##########################
 ### 1 Basic Data Types ###
@@ -134,7 +136,7 @@ hgd[order(hgd$goodbye),] # returns a dataframe ordered by 'goodbye'
 hgd[rev(order(hgd$hello)),1] # returns just a vector
 
 # read.csv()
-monsters <- read.csv(file='/Users/David/Documents/gitHub/R/monsters.csv'
+monsters <- read.csv(file='/Users/davidrogers/Documents/gitHub/exercises/R_Basics/monsters.csv'
                      ,header=TRUE,sep=',')
 monsters
 
