@@ -1,0 +1,146 @@
+---
+title: "Exploring and modeling data on American fuel consumption"
+output: html_document
+---
+
+```{r,echo=FALSE,message=FALSE}
+library(alr4)
+library(ggplot2)
+```
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+colnames(fuel2001)
+```
+
+The data set "fuel2001" is about fuel consumption in the US, broken down by state, including DC.  It contains information about the number of licensed drivers ('Drivers'), the amount of gasoline sold for road use ('FuelC', in thousands of gallons), the number of miles of federal-aid highway, per-capita income as of the year 2000, estimated numer of miles driven per-capita, etc.
+
+First, to get a handle on some of the main variables, a few plots:
+
+```{r,echo=FALSE, message=FALSE,warning=FALSE}
+hist(fuel2001$Miles)
+qplot(fuel2001$Miles,color=I("purple"))
+help(qplot)
+help(ggplot2)
+```
+
+Notice that the number of miles of federal-aid highway is very skewed among states: most states have a moderate length of federal-aid highway, with just one having quite a large amount.  Which is the outlying state?
+
+```{r,message=FALSE,warning=FALSE,tidy=TRUE}
+which.max(fuel2001$Miles) # returns an index
+rownames(fuel2001)[which.max(fuel2001$Miles)]
+```
+
+The outlier is Texas. Now let's take a look at the populations:
+
+```{r,echo=FALSE}
+hist(fuel2001$Pop)
+qplot(fuel2001$Pop,color=I("blue"))
+```
+
+Most states have populations below 10 million; which state is most populous?
+
+```{r,echo=FALSE}
+rownames(fuel2001)[which.max(fuel2001$Pop)]
+```
+
+What are some of the other most populous states?
+```{r,echo=FALSE}
+order(fuel2001$Pop)
+head(rownames(fuel2001)[order(fuel2001$Pop,decreasing=TRUE)],10)
+```
+
+
+Let's consider some possible statistical relationships between different variables.  The following fancy graphs might make it look like there's a relationship between the gas tax and the number of miles driven per capita:
+
+```{r,echo=FALSE}
+scatterplot(MPC~Tax,fuel2001)
+plot(Effect(c('Tax'),mod=lm(MPC~Tax,fuel2001)))
+```
+
+But a quick statistical test casts doubt on this relationship:
+```{r,echo=FALSE}
+summary(lm(MPC~Tax,fuel2001))
+```
+
+The p-value for the test is relatively high (0.2), suggesting that a similarly strong apparent relationship between variables like "MPC"" and "Tax"" would occur just by chance about 20% of the time assuming there is in fact no relationship between the two variables.
+
+Now let's try to predict the number of miles driven per capita from some of the other variables.  Let's try using income, gas tax, and number of miles of federal highway per capita as predictors.
+
+First we need a new variable, highway miles per capita (HWPC).
+
+```{r}
+fuel2001$HWPC <- fuel2001$Miles/fuel2001$Pop
+```
+Then we can get an idea of the relationships between and among our predictors and the response variable with a scatterplot matrix:
+
+```{r,echo=FALSE}
+pairs(MPC~HWPC+Tax+Income,fuel2001)
+```
+
+Now we can create a simple model to predict the number of miles driven per capita from the other variables:
+
+```{r, echo=TRUE,tidy=TRUE}
+mMHTI <- lm(MPC~HWPC+Tax+Income, fuel2001)
+summary(mMHTI)
+plot(allEffects(mMHTI))
+```
+
+These plots show the relationships among each of the predictors and the response variable (miles driven per capita).  Note that the fact that these are "effect" plots does not mean that any of these variables actually "affects" the number of miles driven per capita: for example, this model is not good evidence that high gas taxes cause people to drive less.
+
+It is a good idea to look at the discrepancies between the modeled values and the actual values to see whether there are any patterns:
+
+
+```{r, echo=FALSE}
+plot(mMHTI$residuals)
+```
+
+There is no clear pattern in the residuals, though there are a couple of interesting outliers:
+```{r,echo=TRUE,tidy=TRUE}
+tail(sort(mMHTI$residuals))
+```
+
+Wyoming and Vermont have a surprisingly high number of miles driven per capita given their respective per-capita income, federal highway miles per capita, and gas tax rates.
+
+Now we can try a simple prediction exercise: we can predict Georgia's miles per capita using the same predictors, but leaving
+Georgeia's original data out of the model.
+
+Here's Georgia's data:
+
+```{r,echo=FALSE}
+fuel2001["GA",]
+```
+
+And here's a new model with a dataset that leaves out Georgia's data:
+
+```{r,echo=FALSE}
+fuel2001GA <- fuel2001[rownames(fuel2001) !='GA',]
+model.MHTI.noGA <- lm(MPC~HWPC+Tax+Income,fuel2001GA)
+```
+```{r, echo=TRUE,tidy=TRUE}
+summary(model.MHTI.noGA)
+```
+
+We can use R's 'predict' command to get a prediction for Georgia's number of miles driven per capita.  
+
+```{r,echo=FALSE}
+GApredict <- predict(model.MHTI.noGA,newdata=fuel2001['GA',],interval='prediction')[1]
+GAactual <- fuel2001$MPC[rownames(fuel2001)=='GA']
+GAactual
+```
+
+Here are the two values compared side-by-side:
+
+```{r,echo=FALSE}
+com <- matrix(c(GAactual,GApredict),ncol=2)
+colnames(com) <- c("Actual","Predicted")
+com
+```
+
+We can also get a prediction interval, constructed so that it has a 95% chance of containing Georgia's true MPC. 
+
+```{r,echo=FALSE}
+p <- matrix(predict(model.MHTI.noGA,newdata=fuel2001['GA',],interval='prediction')[2:3],ncol=2)
+colnames(p) <- c("Lower bound", "Upper bound")
+p
+```
+
+Notice that Gerogia's true value of 13,248.6 miles driven per capita is in fact within this interval.  But notice also that this prediction interval is fairly wide (7,575 to 14,906 miles driven per capita), as would be expected with such a small data set - even counting Washington DC, 51 data points is not many.
