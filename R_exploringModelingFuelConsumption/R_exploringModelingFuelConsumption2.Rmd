@@ -2,24 +2,37 @@
 title: "Exploring and modeling data on American fuel consumption"
 output: html_document
 ---
-
+#### The fuel dataset
 ```{r,echo=FALSE,message=FALSE}
 library(alr4)
 library(ggplot2)
-```
-```{r,echo=FALSE,message=FALSE,warning=FALSE}
 colnames(fuel2001)
 ```
 
 The data set "fuel2001" is about fuel consumption in the US, broken down by state, including DC.  It contains information about the number of licensed drivers ('Drivers'), the amount of gasoline sold for road use ('FuelC', in thousands of gallons), the number of miles of federal-aid highway, per-capita income as of the year 2000, estimated numer of miles driven per-capita, etc.
 
+#### Fancy graphs
+The following fancy graphs might make it look like there's a relationship between the gas tax and the number of miles driven per capita:
+
+```{r,echo=FALSE}
+scatterplot(MPC~Tax,fuel2001)
+plot(Effect(c('Tax'),mod=lm(MPC~Tax,fuel2001)))
+```
+
+But a quick statistical test casts doubt on this relationship:
+```{r,echo=FALSE}
+summary(lm(MPC~Tax,fuel2001))
+```
+
+The p-value for the test is relatively high (0.2), suggesting that a similarly strong apparent relationship between variables like "MPC"" and "Tax"" would occur just by chance about 20% of the time assuming there is in fact no relationship between the two variables.
+
+#### Exploring the dataset
+Let's back up and get acquainted with the data.  
+
 First, to get a handle on some of the main variables, a few plots:
 
 ```{r,echo=FALSE, message=FALSE,warning=FALSE}
-hist(fuel2001$Miles)
 qplot(fuel2001$Miles,color=I("purple"))
-help(qplot)
-help(ggplot2)
 ```
 
 Notice that the number of miles of federal-aid highway is very skewed among states: most states have a moderate length of federal-aid highway, with just one having quite a large amount.  Which is the outlying state?
@@ -31,8 +44,7 @@ rownames(fuel2001)[which.max(fuel2001$Miles)]
 
 The outlier is Texas. Now let's take a look at the populations:
 
-```{r,echo=FALSE}
-hist(fuel2001$Pop)
+```{r,echo=TRUE}
 qplot(fuel2001$Pop,color=I("blue"))
 ```
 
@@ -48,20 +60,6 @@ order(fuel2001$Pop)
 head(rownames(fuel2001)[order(fuel2001$Pop,decreasing=TRUE)],10)
 ```
 
-
-Let's consider some possible statistical relationships between different variables.  The following fancy graphs might make it look like there's a relationship between the gas tax and the number of miles driven per capita:
-
-```{r,echo=FALSE}
-scatterplot(MPC~Tax,fuel2001)
-plot(Effect(c('Tax'),mod=lm(MPC~Tax,fuel2001)))
-```
-
-But a quick statistical test casts doubt on this relationship:
-```{r,echo=FALSE}
-summary(lm(MPC~Tax,fuel2001))
-```
-
-The p-value for the test is relatively high (0.2), suggesting that a similarly strong apparent relationship between variables like "MPC"" and "Tax"" would occur just by chance about 20% of the time assuming there is in fact no relationship between the two variables.
 
 Now let's try to predict the number of miles driven per capita from some of the other variables.  Let's try using income, gas tax, and number of miles of federal highway per capita as predictors.
 
@@ -101,7 +99,7 @@ tail(sort(mMHTI$residuals))
 Wyoming and Vermont have a surprisingly high number of miles driven per capita given their respective per-capita income, federal highway miles per capita, and gas tax rates.
 
 Now we can try a simple prediction exercise: we can predict Georgia's miles per capita using the same predictors, but leaving
-Georgeia's original data out of the model.
+Georgia's original data out of the model.
 
 Here's Georgia's data:
 
