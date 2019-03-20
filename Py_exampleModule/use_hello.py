@@ -1,8 +1,8 @@
 import os
-os.getcwd()
+print(os.getcwd())
 
 # Ensure that your current working directory is the folder in which the module scripts are stored.
-os.chdir('/users/david/documents/github/References-and-Illustrations/Py_testModule')
+# os.chdir('/users/david/documents/github/exercises/Py_testModule')
 
 import hello
 hello.world()
