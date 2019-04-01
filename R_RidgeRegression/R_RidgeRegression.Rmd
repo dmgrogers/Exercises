@@ -1,0 +1,116 @@
+---
+title: "Ridge regression"
+output: html_document
+---
+
+```{r echo=TRUE,warning=FALSE,message=FALSE}
+library(alr4)
+library(glmnet)
+library(ISLR)
+```
+
+## Collinear data
+
+The "Hitters" dataset, with data on player statistics and salaries in Major League Baseball.  (Based on material from a course by on statistical modeling by Arturo Valdivia at Indiana University, Bloomington.
+
+What do we do when our predictors are highly correlated (collinear)?
+
+```{r, echo=TRUE}
+pairs(~CAtBat+CHits+CRuns+CRBI,data=Hitters)
+# summary(Hitters)
+```
+
+Before we try to model the Hitters data, there's some preparation to do.  We'll scale the data (adjust so that mean=0 and variance = 1).  Some of the data is categorical, so for multiple regression we'll also need it as a model matrix:
+```{r, echo=TRUE}
+x <- scale(model.matrix(Salary~.,Hitters))[,-1]
+# head(x)
+```
+We also need to check for NA values, and make a new data frame with just the data for which salary is available.  
+```{r, echo=TRUE,warning=FALSE}
+summary(is.na(Hitters$Salary))
+y <- scale(with(Hitters,Salary[is.na(Salary)==FALSE]))
+yx <- as.data.frame(cbind(y,x))
+```
+
+Now, a straightforward Ordinary Least Squares model:
+```{r, echo=TRUE}
+ols.lm <- lm(y~.,yx)
+ols.glmnet <- glmnet(x,y,alpha=0,lambda=0,thresh=1e-14) # equivalent - see below
+# ols.lm$coef
+# predict(ols.glmnet,type='coef')
+summary(ols.lm)
+```
+However, the collinearity in this data means that the OLS model is likely to suffer from high variance.  The variance inflation factor is a measure of the collinearity of the data (it's 1/(1-r2) for each model derived from regressing one of the predictor variables on the others).  Checking for inflation factors greater than 10, we can see that several variables are highly collinear.
+```{r, echo=TRUE}
+vif(ols.lm)[vif(ols.lm)>100]
+```
+
+(Note that the variance inflation factor is scale-invariant.)
+
+Ridge regression is a technique for constraining the coefficients to avoid overfitting the model and increasing the variance.  Rather than finding coefficients that minimize the residual sum of squares, ridge regression minimizes RSS + lambda*(sum of squared coefficients), where lambda is the constraint or regularization parameter.  Ridge regression estimates will have a certain amount of bias, but less variance, and better performance when generalized to new data.  We'll generate a logarithmic sequence of lambdas and then generate a set of models, one model per value of lambda.
+
+
+```{r,echo=TRUE}
+grid <- 10^seq(10,-2,length=100) # logarithmic sequence of lambdas
+# grid
+ridge <- glmnet(x,y,alpha=0,lambda=grid,thresh=1e-14)
+dim(coef(ridge))  # a set of coefficients for each value of lambda 
+```
+We can plot the values the coefficients take for each value of lambda.  
+```{r,echo=TRUE}
+plot(ridge)
+```
+
+For example, the fiftieth value of lambda and the coefficients associated with it:
+```{r,echo=TRUE}
+# E.g., for the 50th value of lambda...
+ridge$lambda[50]
+coef(ridge)[,50]
+```
+We can also use the predict method in glmnet to get the actual coefficients for particular values of lambda:
+```{r,echo=TRUE}
+# predict(ridge,s=ridge$lambda[50],type='coef')
+```
+How do we choose the best value of lambda?  We can use cross-validation, splitting the data into training and test sets and then determining which value of lambda leads to the lowest mean squared error.  For example, for one possible partition of the data into training and test sets, and one value of lambda, we get the following predictions (in standardized units):
+
+```{r,echo=TRUE}
+set.seed(1)
+train <- sample(1:nrow(x),nrow(x)/2)
+test <- (-train)
+y.test <- y[test]
+y.train <- y[train]
+ridge1 <- glmnet(x[train, ],y[train],alpha=0,lambda=grid,thresh=1e-14)
+
+```
+
+Predictions of the trained model for the test data, with lambda=4:
+```{r,echo=TRUE}
+ridge1.pred <- predict(ridge1,s=4,newx=x[test,])
+head(ridge1.pred)
+```
+
+Now, compare the mean squared error of the model with different values of lambda, 0 for OLS.  Not all nonzero values of lambda will result in lower MSE than lambda=0!
+```{r,echo=TRUE}
+ols.pred <- predict(ridge1, s=0, newx=x[test, ])
+ridge.pred <- predict(ridge1,s=1e2,newx=x[test, ],exact=F)
+ols.mse <- mean((ols.pred - y[test])^2)
+ridge.mse <- mean((ridge.pred - y[test])^2)
+cbind(ols.mse,ridge.mse)
+```
+
+Choosing a good value for lambda is essential.  Use cross-validation to estimate the MSE for different possible values of lambda.  (Compare the results above with lambda=0 and lambda=100 to the predicted MSE values in as plotted below.)
+
+```{r,echo=TRUE}
+set.seed(1)
+cv.results <- cv.glmnet(x[train,],y[train],alpha=0,nfolds=8)
+plot(cv.results)
+```
+
+For this optimal value of lambda, the mean squared error is somewhat lower than for the OLS model:
+```{r,echo=TRUE}
+prize.lambda <- cv.results$lambda.min
+prize.lambda
+ridge.pred.prize=predict(ridge,s=prize.lambda ,newx=x[test ,])
+ridge.prize.mse <- mean((ridge.pred.prize -y[test])^2)
+cbind(ols.mse,ridge.mse,ridge.prize.mse)
+```
